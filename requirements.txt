@@ -1,6 +1,5 @@
-pysus[dbc]==2.0.0
-google-cloud-storage
+pysus
 pandas
-pyarrow
+google-cloud-storage
 fastparquet
-httpx
+pyarrow
