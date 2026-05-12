@@ -1,6 +1,6 @@
 import os
 from google.cloud import storage
-from pysus import SINASC
+from pysus.online_data.SINASC import SINASC
 from pysus.utilities.readdbc import read_dbc
 
 def upload_to_gcs(bucket_name, source_file_name, destination_blob_name):
