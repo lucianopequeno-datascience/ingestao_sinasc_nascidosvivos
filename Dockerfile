@@ -1,18 +1,25 @@
-FROM python:3.10-slim
+FROM python:3.11-slim
 
-# Define o diretório de trabalho no container
 WORKDIR /app
 
-# Instala dependências de sistema mínimas (se necessário para pacotes python)
-RUN apt-get update && apt-get install -y --no-install-recommends \
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV LANG=C.UTF-8
+
+RUN apt-get update && apt-get install -y \
+    gcc \
+    g++ \
     build-essential \
+    libffi-dev \
+    libmagic1 \
     && rm -rf /var/lib/apt/lists/*
 
-# Copia as dependências e o script
 COPY requirements.txt .
+
+RUN pip install --upgrade pip
+
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY extract_sinasc.py .
+COPY main.py .
 
-# Comando padrão de execução
-CMD ["python", "extract_sinasc.py"]
+CMD ["python", "main.py"]

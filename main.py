@@ -1,72 +1,94 @@
 import os
-import pandas as pd
 from google.cloud import storage
-from pysus.online_data import SINASC
+from pysus import SINASC
+from pysus.utilities.readdbc import read_dbc
 
 def upload_to_gcs(bucket_name, source_file_name, destination_blob_name):
-    """Faz o upload de um arquivo para o bucket do GCS."""
     storage_client = storage.Client()
+
     bucket = storage_client.bucket(bucket_name)
+
     blob = bucket.blob(destination_blob_name)
+
     blob.upload_from_filename(source_file_name)
-    print(f"Sucesso: {source_file_name} -> gs://{bucket_name}/{destination_blob_name}")
+
+    print(f"Upload concluído: {destination_blob_name}")
 
 def main():
-    bucket_name = "dados_alagoinhas_bronze"
-    prefix = "natalidade"
-    uf = "BA"
-    # O DATASUS utiliza o código IBGE de 6 dígitos (sem o dígito verificador)
-    cod_ibge_alagoinhas = "290070" 
-    
-    anos = list(range(2000, 2029))
 
-    print("Carregando metadados do SINASC...")
+    bucket_name = "dados_alagoinhas_bronze"
+
+    prefix = "natalidade"
+
+    uf = "BA"
+
+    cod_alagoinhas = "2900702"
+
+    anos = list(range(2000, 2026))
+
+    print("Inicializando SINASC...")
+
     sinasc = SINASC().load()
-    
+
     for ano in anos:
-        print(f"Buscando arquivos para {uf} no ano {ano}...")
+
         try:
-            files = sinasc.get_files("DN", uf=uf, year=ano)
-            
+
+            print(f"Processando ano {ano}")
+
+            files = sinasc.get_files("DN", uf=uf)
+
+            # filtra apenas arquivos do ano
+            files = [f for f in files if str(ano) in str(f)]
+
             if not files:
-                print(f"Nenhum arquivo encontrado no DATASUS para o ano {ano}. Pulando...")
+                print(f"Nenhum arquivo encontrado para {ano}")
                 continue
-                
+
             downloaded_files = sinasc.download(files)
-            
-            for file_path in downloaded_files:
-                file_path_str = str(file_path)
-                file_name = os.path.basename(file_path_str)
-                
-                # Carrega o parquet completo da Bahia
-                df_ba = pd.read_parquet(file_path_str)
-                
-                # Filtra os dados: CODMUNRES é o Município de Residência da mãe
-                # Se preferir por ocorrência, mude para 'CODMUNNASC'
-                df_alagoinhas = df_ba[df_ba['CODMUNRES'] == cod_ibge_alagoinhas]
-                
-                if df_alagoinhas.empty:
-                    print(f"Sem registros de Alagoinhas encontrados em {file_name}. Pulando upload.")
-                    os.remove(file_path_str)
-                    continue
-                
-                # Salva temporariamente o arquivo filtrado no container
-                filtered_file_name = f"alagoinhas_{file_name}"
-                df_alagoinhas.to_parquet(filtered_file_name, index=False)
-                
-                # Novo particionamento adequado para a modelagem:
-                # natalidade/cod_mun=290070/ano=YYYY/arquivo.parquet
-                destination_blob_name = f"{prefix}/cod_mun={cod_ibge_alagoinhas}/ano={ano}/{file_name}"
-                
-                # Upload do dado filtrado para a camada bronze
-                upload_to_gcs(bucket_name, filtered_file_name, destination_blob_name)
-                
-                # Limpeza dupla do disco local do container para liberar espaço
-                os.remove(file_path_str)
-                os.remove(filtered_file_name)
-                
+
+            for file_ref in downloaded_files:
+
+                print(f"Lendo arquivo: {file_ref}")
+
+                df = read_dbc(str(file_ref))
+
+                df_filtrado = df[
+                    df["CODMUNRES"].astype(str) == cod_alagoinhas
+                ]
+
+                if not df_filtrado.empty:
+
+                    file_name = os.path.basename(str(file_ref))
+
+                    parquet_name = f"{file_name}.parquet"
+
+                    df_filtrado.to_parquet(
+                        parquet_name,
+                        index=False
+                    )
+
+                    destination = (
+                        f"{prefix}/"
+                        f"cod_mun={cod_alagoinhas}/"
+                        f"ano={ano}/"
+                        f"{parquet_name}"
+                    )
+
+                    upload_to_gcs(
+                        bucket_name,
+                        parquet_name,
+                        destination
+                    )
+
+                    os.remove(parquet_name)
+
+                # limpa dbc local
+                if os.path.exists(str(file_ref)):
+                    os.remove(str(file_ref))
+
         except Exception as e:
-            print(f"Aviso: Falha ao processar o ano {ano}. Erro: {e}")
+            print(f"Erro no ano {ano}: {e}")
 
 if __name__ == "__main__":
     main()

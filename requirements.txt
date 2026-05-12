@@ -1,4 +1,5 @@
-pysus
+pysus[dbc]==2.0.0
 google-cloud-storage
 pandas
 pyarrow
+fastparquet
