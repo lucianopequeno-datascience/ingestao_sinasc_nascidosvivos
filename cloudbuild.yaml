@@ -1,0 +1,13 @@
+steps:
+  # 1. Constrói a imagem Docker
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'gcr.io/$PROJECT_ID/extrator-sinasc', '.']
+    id: 'build-image'
+
+  # 2. Executa a imagem localmente dentro do Cloud Build para rodar o script
+  # Como roda dentro da rede do Cloud Build, ele assume a identidade da Service Account padrão
+  - name: 'gcr.io/$PROJECT_ID/extrator-sinasc'
+    id: 'run-extraction'
+
+options:
+  logging: CLOUD_LOGGING_ONLY

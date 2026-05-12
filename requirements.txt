@@ -1,0 +1,4 @@
+pysus
+google-cloud-storage
+pandas
+pyarrow
