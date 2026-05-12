@@ -1,4 +1,4 @@
-pysus
+pysus==1.0.1
 pandas
 google-cloud-storage
 fastparquet
