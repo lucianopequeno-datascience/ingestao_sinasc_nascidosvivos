@@ -1,6 +1,5 @@
 steps:
-
-  # Build da imagem
+  # 1. Build da imagem (permanece igual)
   - name: 'gcr.io/cloud-builders/docker'
     id: 'build-image'
     args:
@@ -9,9 +8,12 @@ steps:
       - 'gcr.io/$PROJECT_ID/extrator-sinasc'
       - '.'
 
-  # Executa o container
-  - name: 'gcr.io/$PROJECT_ID/extrator-sinasc'
+  # 2. Executa o container usando o daemon do Docker local
+  - name: 'gcr.io/cloud-builders/docker'
     id: 'run-extraction'
+    args:
+      - 'run'
+      - 'gcr.io/$PROJECT_ID/extrator-sinasc'
 
 options:
   logging: CLOUD_LOGGING_ONLY
