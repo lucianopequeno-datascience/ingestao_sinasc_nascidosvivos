@@ -12,7 +12,7 @@ def run_oda_pipeline():
     UF = "BA"
     
     # Intervalo da série histórica
-    ANOS = range(20015, 2028) 
+    ANOS = range(2015, 2028) 
     
     print("Iniciando pipeline de Natalidade (SINASC)...")
     try:
