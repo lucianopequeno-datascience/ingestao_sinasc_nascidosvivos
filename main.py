@@ -28,14 +28,14 @@ def run_oda_pipeline():
         print(f"--- Processando ano: {year} ---")
         
         try:
-            # Na versão nova, passamos o estado e o ano
-            arquivos = sinasc.get_files(state=UF, year=year)
+            # CORREÇÃO: Utilizando 'uf' ao invés de 'state'
+            arquivos = sinasc.get_files(uf=UF, year=year)
             
             if not arquivos:
                 print(f"INFO: Nenhum dado disponível no servidor para o ano {year}. Pulando...")
                 continue
 
-            # Download e processamento direto para DataFrame (sem precisar do read_dbc manual)
+            # Download e processamento direto para DataFrame
             print(f"Baixando dados de {year}...")
             df = arquivos[0].download().to_dataframe()
             
