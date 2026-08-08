@@ -2,13 +2,13 @@ import os
 import sys
 import pandas as pd
 from google.cloud import storage
-from pysus.online_data import SINASC # Import corrigido para a v2.0+
+from pysus.online_data import SINASC 
 
 def run_oda_pipeline():
     # 1. Configurações
     BUCKET_NAME = "dados_alagoinhas_bronze"
     DESTINATION_FOLDER = "saude/natalidade"
-    COD_ALAGOINHAS = "2900702" # Código de 7 dígitos para o SINASC
+    COD_ALAGOINHAS = "2900702" 
     UF = "BA"
     
     # Intervalo da série histórica
@@ -16,7 +16,6 @@ def run_oda_pipeline():
     
     print("Iniciando pipeline de Natalidade (SINASC)...")
     try:
-        # Inicialização corrigida: chamando a classe dentro do módulo
         sinasc = SINASC.SINASC().load()
         storage_client = storage.Client()
         bucket = storage_client.bucket(BUCKET_NAME)
@@ -28,20 +27,18 @@ def run_oda_pipeline():
         print(f"--- Processando ano: {year} ---")
         
         try:
-            # CORREÇÃO: Utilizando 'uf' ao invés de 'state'
-            arquivos = sinasc.get_files(uf=UF, year=year)
+            # CORREÇÃO AQUI: Inserido o parâmetro group='DN'
+            arquivos = sinasc.get_files(group='DN', uf=UF, year=year)
             
             if not arquivos:
                 print(f"INFO: Nenhum dado disponível no servidor para o ano {year}. Pulando...")
                 continue
 
-            # Download e processamento direto para DataFrame
             print(f"Baixando dados de {year}...")
             df = arquivos[0].download().to_dataframe()
             
             # Filtro de município
             if 'CODMUNRES' in df.columns:
-                # Garante que a comparação seja feita como string
                 df_alagoinhas = df[df['CODMUNRES'].astype(str) == COD_ALAGOINHAS]
             else:
                 print(f"AVISO: Coluna 'CODMUNRES' não encontrada em {year}. Pulando.")
@@ -58,14 +55,13 @@ def run_oda_pipeline():
             # Subindo para o bucket particionado por ano
             blob = bucket.blob(f"{DESTINATION_FOLDER}/ano={year}/{local_filename}")
             blob.upload_from_filename(local_filename)
-            print(f"SUCESSO: Arquivo {local_filename} enviado.")
+            print(f"SUCESSO: Arquivo {local_filename} enviado para a camada bronze.")
             
             # Limpeza local
             if os.path.exists(local_filename):
                 os.remove(local_filename)
                 
         except Exception as e:
-            # Captura erros inesperados de um ano específico sem derrubar a execução dos outros
             print(f"AVISO: Não foi possível processar o ano {year}. Detalhe: {e}")
             continue
 
