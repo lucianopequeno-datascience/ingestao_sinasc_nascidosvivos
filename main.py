@@ -27,8 +27,8 @@ def run_oda_pipeline():
         print(f"--- Processando ano: {year} ---")
         
         try:
-            # CORREÇÃO AQUI: Inserido o parâmetro group='DN'
-            arquivos = sinasc.get_files(group='DN', uf=UF, year=year)
+            # CORREÇÃO AQUI: Inserido o parâmetro group='DNRES'
+            arquivos = sinasc.get_files(group='DNRES', uf=UF, year=year)
             
             if not arquivos:
                 print(f"INFO: Nenhum dado disponível no servidor para o ano {year}. Pulando...")
