@@ -8,7 +8,7 @@ def run_oda_pipeline():
     # 1. Configurações
     BUCKET_NAME = "dados_alagoinhas_bronze"
     DESTINATION_FOLDER = "saude/natalidade"
-    COD_ALAGOINHAS = "2900702" 
+    COD_ALAGOINHAS = "290070" 
     UF = "BA"
     
     # Intervalo da série histórica
