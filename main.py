@@ -2,12 +2,14 @@ import os
 import sys
 import pandas as pd
 from google.cloud import storage
-from pysus.online_data import SINASC 
+from pysus.online_data.SINASC import download  # Importação corrigida
 
 def run_oda_pipeline():
     # 1. Configurações
     BUCKET_NAME = "dados_alagoinhas_bronze"
     DESTINATION_FOLDER = "saude/natalidade"
+    
+    # CORREÇÃO 1: DataSUS usa código IBGE de 6 dígitos (sem o dígito verificador)
     COD_ALAGOINHAS = "290070" 
     UF = "BA"
     
@@ -16,7 +18,6 @@ def run_oda_pipeline():
     
     print("Iniciando pipeline de Natalidade (SINASC)...")
     try:
-        sinasc = SINASC.SINASC().load()
         storage_client = storage.Client()
         bucket = storage_client.bucket(BUCKET_NAME)
     except Exception as e:
@@ -24,22 +25,22 @@ def run_oda_pipeline():
         sys.exit(1)
     
     for year in ANOS:
-        print(f"--- Processando ano: {year} ---")
+        print(f"\n--- Processando ano: {year} ---")
         
         try:
-            # CORREÇÃO AQUI: Inserido o parâmetro group='DNRES'
-            arquivos = sinasc.get_files(group='DNRES', uf=UF, year=year)
+            # CORREÇÃO 2: Uso direto da função download do PySUS
+            print(f"Baixando dados do servidor DataSUS para {UF} em {year}...")
+            df = download(UF, year)
             
-            if not arquivos:
-                print(f"INFO: Nenhum dado disponível no servidor para o ano {year}. Pulando...")
+            if df is None or df.empty:
+                print(f"INFO: Nenhum dado retornado para {year}. Pulando...")
                 continue
-
-            print(f"Baixando dados de {year}...")
-            df = arquivos[0].download().to_dataframe()
             
             # Filtro de município
             if 'CODMUNRES' in df.columns:
-                df_alagoinhas = df[df['CODMUNRES'].astype(str) == COD_ALAGOINHAS]
+                # Limpa espaços em branco e garante que é string para comparar
+                df['CODMUNRES'] = df['CODMUNRES'].astype(str).str.strip()
+                df_alagoinhas = df[df['CODMUNRES'] == COD_ALAGOINHAS]
             else:
                 print(f"AVISO: Coluna 'CODMUNRES' não encontrada em {year}. Pulando.")
                 continue
@@ -61,11 +62,14 @@ def run_oda_pipeline():
             if os.path.exists(local_filename):
                 os.remove(local_filename)
                 
+        except ValueError:
+            # O PySUS costuma retornar ValueError quando o arquivo de um ano não existe no FTP
+            print(f"INFO: Os dados de {year} ainda não estão disponíveis no DataSUS.")
         except Exception as e:
-            print(f"AVISO: Não foi possível processar o ano {year}. Detalhe: {e}")
+            print(f"AVISO: Erro inesperado ao processar o ano {year}. Detalhe: {e}")
             continue
 
-    print("Pipeline concluído com sucesso.")
+    print("\nPipeline concluído com sucesso.")
 
 if __name__ == "__main__":
     run_oda_pipeline()
