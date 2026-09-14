@@ -31,7 +31,7 @@ def run_oda_pipeline():
         
         try:
             # Buscando os arquivos no FTP
-            arquivos = sinasc.get_files(group='DNRES', uf=UF, year=year)
+            arquivos = sinasc.get_files(group='DN', uf=UF, year=year)
             
             if not arquivos:
                 print(f"INFO: Nenhum dado disponível no servidor para o ano {year}. Pulando...")
